@@ -1,326 +1,167 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <base target="_top">
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>แบบฟอร์มสับเปลี่ยนมิเตอร์ชำรุด</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body { background: #e0e0e0; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; overflow-x: hidden; }
-    #main-wrapper { width: 840px; margin: 0 auto; padding: 20px 0; display: flex; flex-direction: column; align-items: center; transform-origin: top center; }
-    .no-print { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; width: 210mm; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; }
-    .no-print span { font-size: 14pt; color: #333; font-family: 'Sarabun', sans-serif; }
-    .no-print button { font-family: 'Sarabun', sans-serif; font-size: 14pt; cursor: pointer; padding: 6px 18px; background: #4a90e2; color: white; border: none; border-radius: 4px; transition: 0.3s; }
-    .no-print button:hover { opacity: 0.9; }
-    .a4-page { background: white; width: 210mm; height: 297mm; padding: 5mm 20mm 20mm 20mm; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 10pt; color: black; position: relative; overflow: hidden; }
-    .text-center { text-align: center; } 
-    .blank { border-bottom: 1px dotted #000; display: inline-block; text-align: center; color: #0000ff; padding: 0 5px; vertical-align: baseline; min-height: 14px; }
-    .footer-code { font-size: 9pt; position: absolute; bottom: 15mm; left: 20mm; }
-
-    @page { size: A4; margin: 0mm; }
-    @media print { 
-      body { background: white; padding: 0; margin: 0; height: auto !important; } 
-      #main-wrapper { transform: none !important; width: 210mm; padding: 0; margin: 0; }
-      .no-print { display: none; } 
-      .a4-page { box-shadow: none; width: 210mm; height: 297mm; padding: 5mm 20mm 20mm 20mm; margin: 0; page-break-after: always; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } 
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+    body { font-family: 'Sarabun', sans-serif; }
+    @media print {
+      .no-print { display: none; }
+      body { padding: 0; margin: 0; background-color: white; }
+      .pdf-page { border: none; shadow: none; padding: 0; margin: 0; }
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-100 p-4 sm:p-8">
 
-  <div id="main-wrapper">
-    <div class="no-print">
-      <span id="printStatus">กำลังเตรียมข้อมูล...</span>
-      <button id="printBtn" onclick="window.print()" disabled style="background:#ccc; cursor:not-allowed;">พิมพ์เอกสาร PDF</button>
+  <div class="no-print max-w-4xl mx-auto mb-6 bg-white p-4 rounded-xl shadow-md flex justify-between items-center border border-gray-200">
+    <div>
+      <h2 class="font-bold text-lg text-gray-800">เครื่องมือจัดการเอกสาร</h2>
+      <p id="statusText" class="text-sm text-green-600 font-bold">ดึงข้อมูลใบงานจากหน่วยความจำเสร็จสมบูรณ์ พร้อมพิมพ์</p>
+    </div>
+    <button id="printBtn" onclick="window.print()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-200 cursor-pointer flex items-center gap-2">
+      🖨️ สั่งพิมพ์ใบงาน (Print PDF)
+    </button>
+  </div>
+
+  <div class="pdf-page max-w-4xl mx-auto bg-white p-8 sm:p-12 border border-gray-200 shadow-xl rounded-sm text-gray-800">
+    <div class="flex justify-between items-start border-b-2 border-purple-900 pb-6 mb-6">
+      <div class="flex items-center gap-4">
+        <div class="w-16 h-16 bg-purple-700 text-white font-black rounded-xl flex items-center justify-center text-xl shadow-md">PEA</div>
+        <div>
+          <h1 class="text-xl font-bold text-gray-900 tracking-tight">การไฟฟ้าส่วนภูมิภาค (PEA)</h1>
+          <p class="text-sm text-purple-700 font-medium">ระบบบริหารจัดการมิเตอร์ชำรุด (PEA MTS System)</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <div class="bg-purple-50 text-purple-900 border border-purple-200 px-4 py-2 rounded-xl inline-block shadow-inner">
+          <span class="text-xs uppercase tracking-wider font-bold block text-purple-500">เลขที่ใบงาน</span>
+          <span id="txtJobNo" class="text-lg font-black text-purple-900">-</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-2 font-medium">วันที่บันทึกเรื่อง: <span id="txtDocDate" class="text-gray-600">-</span></p>
+      </div>
     </div>
 
-    <div class="a4-page">
-      <div style="position: relative;">
-        <div style="position: absolute; top: 40px; left: 0; font-size: 10pt;">
-          เลขที่ <span class="blank" style="width: 75px; font-size: 10pt;" id="docJobNo"></span>
+    <div class="mb-6">
+      <h3 class="text-md font-bold text-purple-900 bg-purple-50 px-3 py-2 rounded-lg border-l-4 border-purple-700 mb-4 shadow-sm">1. ข้อมูลผู้ใช้ไฟฟ้าและสถานที่รับแจ้งเหตุ</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm px-2">
+        <div><p class="text-gray-400 font-medium">ชื่อ-นามสกุล ผู้ใช้ไฟฟ้า:</p><p id="txtCustomerName" class="font-semibold text-gray-800 text-base mt-0.5">-</p></div>
+        <div><p class="text-gray-400 font-medium">หมายเลขผู้ใช้ไฟฟ้า (CA / PEA No.):</p><p id="txtPeaNumber" class="font-semibold text-gray-800 text-base font-mono mt-0.5">-</p></div>
+        <div class="md:col-span-2"><p class="text-gray-400 font-medium">สถานที่ติดตั้ง / ที่อยู่ผู้ใช้ไฟฟ้า:</p><p id="txtAddress" class="font-semibold text-gray-800 text-base mt-0.5 leading-relaxed">-</p></div>
+      </div>
+    </div>
+
+    <div class="mb-6">
+      <h3 class="text-md font-bold text-purple-900 bg-purple-50 px-3 py-2 rounded-lg border-l-4 border-purple-700 mb-4 shadow-sm">2. รายละเอียดมิเตอร์เดิมที่ได้รับแจ้งซ่อม</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm px-2">
+        <div><p class="text-gray-400 font-medium">หมายเลขมิเตอร์เดิมที่ชำรุด (Old Meter ID):</p><p id="txtOldPea" class="font-bold text-red-600 text-base font-mono mt-0.5">-</p></div>
+        <div><p class="text-gray-400 font-medium">ขนาดและรายละเอียดมิเตอร์ชำรุด:</p><p id="txtMeterDesc" class="font-semibold text-gray-800 text-base mt-0.5">-</p></div>
+        <div><p class="text-gray-400 font-medium">สาเหตุและอาการของมิเตอร์ที่ชำรุด:</p><p id="txtReason" class="font-semibold text-gray-800 text-base mt-0.5">-</p></div>
+        <div><p class="text-gray-400 font-medium">พนักงานผู้ส่งเรื่องตรวจสอบหน้างาน:</p><p id="txtReqName" class="font-semibold text-gray-800 text-base mt-0.5">-</p></div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 border border-gray-200 rounded-2xl p-5 bg-gray-50/50 shadow-inner">
+      <div class="md:col-span-2 flex flex-col justify-center">
+        <h4 class="font-bold text-gray-900 flex items-center gap-1 mb-1">📍 พิกัดตำแหน่งดาวเทียมหน้างาน (GPS)</h4>
+        <p class="text-xs text-gray-500 mb-4 leading-relaxed">เจ้าหน้าที่ชุดสับเปลี่ยนมิเตอร์สามารถนำสมาร์ทโฟนมาสแกนคิวอาร์โค้ดทางขวา เพื่อเปิดระบบนำทางผ่าน Google Maps ตรงไปยังพิกัดสถานที่ติดตั้งหน้างานได้ทันที</p>
+        <div class="bg-white px-4 py-2 border border-gray-200 rounded-xl inline-block self-start shadow-sm">
+          <span class="text-xs text-gray-400 block font-semibold uppercase">พิกัดดาวเทียม (Lat, Lng)</span>
+          <span id="latLngText" class="font-mono text-sm font-bold text-purple-900">-</span>
         </div>
-
-        <div style="position: absolute; top: 15px; right: 0; display: flex; flex-direction: column; align-items: center; width: 100px;">
-          <img id="qrCodeImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="width: 75px; height: 75px; margin-bottom: 4px; display: none;" alt="QR Code">
-          <div id="latLngText" style="font-size: 8pt; color: #555; text-align: center; line-height: 1.1; font-family: Tahoma, sans-serif;"></div>
-        </div>
-
-        <div class="text-center">
-          <img id="logoImg" src="https://i.ibb.co/Kjq5mtfy/image.jpg" style="width: 100px; height: 100px; object-fit: fill;" alt="PEA Logo">
-          <div style="color: black; margin-top: 5px; margin-bottom: 5px;">
-            <div style="font-size: 12pt; font-weight: bold; line-height: 1;">การไฟฟ้าส่วนภูมิภาค</div>
-            <div style="font-size: 5pt; font-family: Arial, sans-serif; letter-spacing: 0.5px; margin-top: 2px;">PROVINCIAL ELECTRICITY AUTHORITY</div>
-          </div>
-          <div style="font-weight: bold; margin-top: 15px;">แบบฟอร์มการขออนุมัติสับเปลี่ยนมิเตอร์ชำรุด</div>
-          <div style="margin-top: 10px;">วันที่ <span class="blank" style="width: 200px;" id="docDate"></span></div>
-        </div>
       </div>
-
-      <div style="margin-top: 20px;">เรียน ผจก.กฟส.กำแพงแสน/หผ.มต.</div>
-      <div style="padding-left: 40px; margin-top: 5px;">จากการตรวจสอบมิเตอร์ของนาย, นาง, น.ส. <span class="blank" style="width: 350px;" id="customerName"></span></div>
-      <div style="margin-top: 5px;">หมายเลขผู้ใช้ไฟ <span class="blank" style="width: 140px;" id="peaNumber"></span> ติดตั้งบ้านเลขที่ <span class="blank" style="width: 300px;" id="address1"></span></div>
-      <div style="margin-top: 5px;"><span class="blank" style="width: 98%; text-align: left;" id="address2"></span></div>
-      
-      <div style="margin-top: 5px;">มิเตอร์ผลิตภัณฑ์ <span class="blank" style="width: 250px;"></span> ขนาด <span class="blank" style="width: 240px;" id="meterSize"></span></div>
-      <div style="margin-top: 5px;">ชำรุดเนื่องจาก <span class="blank" style="width: 350px;" id="defectReason"></span> จึงขออนุมัติสับเปลี่ยนมิเตอร์ใหม่</div>
-      <div style="padding-left: 40px; margin-top: 10px;">จึงเรียนมาเพื่อโปรดทราบและพิจารณาอนุมัติต่อไป</div>
-
-      <div style="margin-left: 55%; margin-top: 20px;">
-        (ลงชื่อ) <span class="blank" style="width: 200px;"></span><br>
-        <div style="margin-top: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( <span class="blank" style="width: 170px;"></span> )</div>
-        <div style="margin-top: 5px;">ตำแหน่ง <span class="blank" style="width: 195px;" id="reqPosition"></span></div>
+      <div class="flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0">
+        <img id="qrImg" src="" alt="Google Maps QR Code" class="w-32 h-32 border border-gray-300 p-1.5 bg-white rounded-lg shadow-sm hidden" />
       </div>
+    </div>
 
-      <div style="padding-left: 40px; margin-top: 20px;">อนุมัติดำเนินการตามระเบียบต่อไป</div>
+    <div class="mb-12">
+      <h3 class="text-md font-bold text-gray-900 bg-gray-100 px-3 py-2 rounded-lg border-l-4 border-gray-600 mb-4">3. บันทึกผลการบันทึกสับเปลี่ยนมิเตอร์ตัวใหม่ (สำหรับเจ้าหน้าที่ช่างหน้างาน)</h3>
+      <table class="w-full border-collapse border border-gray-300 text-sm shadow-sm rounded-lg overflow-hidden">
+        <thead>
+          <tr class="bg-gray-100">
+            <th class="border border-gray-300 px-4 py-2.5 text-left w-1/2 font-bold text-gray-700">รายการบันทึกมิเตอร์ใหม่</th>
+            <th class="border border-gray-300 px-4 py-2.5 text-left w-1/2 font-bold text-gray-700">ข้อมูลที่เปลี่ยนจริงหน้างาน</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="border border-gray-300 px-4 py-3.5 text-gray-600 font-medium">หมายเลขมิเตอร์ตัวใหม่ที่ติดตั้ง (New PEA No.)</td><td class="border border-gray-300 px-4 py-3.5 font-mono text-gray-400">..................................................................</td></tr>
+          <tr><td class="border border-gray-300 px-4 py-3.5 text-gray-600 font-medium">ขนาดแอมแปร์มิเตอร์ตัวใหม่ (New Ampere)</td><td class="border border-gray-300 px-4 py-3.5 font-medium text-gray-700">........................................................... A</td></tr>
+          <tr><td class="border border-gray-300 px-4 py-3.5 text-gray-600 font-medium">ระบบเฟสกระแสไฟฟ้า (Phase Type)</td><td class="border border-gray-300 px-4 py-3.5 font-semibold text-gray-700 flex gap-6"><label class="flex items-center gap-1.5"><input type="checkbox" class="rounded"> 1 เฟส</label><label class="flex items-center gap-1.5"><input type="checkbox" class="rounded"> 3 เฟส</label></td></tr>
+          <tr><td class="border border-gray-300 px-4 py-3.5 text-gray-600 font-medium">หน่วยตัวคูณเลขมิเตอร์ตัวใหม่ (New Reading Unit)</td><td class="border border-gray-300 px-4 py-3.5 font-mono text-gray-400">..................................................................</td></tr>
+        </tbody>
+      </table>
+    </div>
 
-      <div style="margin-top: 40px;">
-        (ลงชื่อ) <span class="blank" style="width: 200px;"></span> ผจก.<br>
-        <div style="margin-top: 5px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( <span class="blank" style="width: 185px;" id="apprName"></span> )</div>
-        <div style="margin-top: 5px;">ตำแหน่ง <span class="blank" style="width: 190px;"></span></div>
+    <div class="grid grid-cols-2 gap-12 text-sm mt-20 text-center">
+      <div class="flex flex-col items-center">
+        <p class="mb-16 text-gray-500">ลงชื่อ............................................................ผู้รายงานผล</p>
+        <p class="font-semibold text-gray-800">(............................................................)</p>
+        <p class="text-xs text-gray-400 mt-1.5 font-medium">ตำแหน่ง............................................................</p>
       </div>
-
-      <div style="margin-top: 40px;">ได้เรียกเก็บเงินจากผู้ใช้ไฟ ดังนี้ บัตรประชาชนเลขที่ <span class="blank" style="width: 350px;" id="idCard"></span></div>
-
-      <div style="padding-left: 40px; margin-top: 10px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
-          <tr style="height: 25px;">
-            <td style="width: 45%;">1. ค่ามิเตอร์ชำรุด <span class="blank" style="width: 128px;" id="billAmt1"></span> บาท</td>
-            <td>บิลเลขที่ <span class="blank" style="width: 120px;" id="billNo1"></span> ลว. <span class="blank" style="width: 110px;" id="billDate1"></span></td>
-          </tr>
-          <tr style="height: 25px;">
-            <td>2. ค่ามิเตอร์ชำรุด <span class="blank" style="width: 128px;" id="billAmt2"></span> บาท</td>
-            <td>บิลเลขที่ <span class="blank" style="width: 120px;" id="billNo2"></span> ลว. <span class="blank" style="width: 110px;" id="billDate2"></span></td>
-          </tr>
-          <tr style="height: 25px;">
-            <td>3. <span class="blank" style="width: 210px;"></span> บาท</td>
-            <td>บิลเลขที่ <span class="blank" style="width: 120px;"></span> ลว. <span class="blank" style="width: 110px;"></span></td>
-          </tr>
-          <tr style="height: 25px;">
-            <td>4. <span class="blank" style="width: 210px;"></span> บาท</td>
-            <td>บิลเลขที่ <span class="blank" style="width: 120px;"></span> ลว. <span class="blank" style="width: 110px;"></span></td>
-          </tr>
-          <tr style="height: 25px;">
-            <td>5. <span class="blank" style="width: 210px;"></span> บาท</td>
-            <td>บิลเลขที่ <span class="blank" style="width: 120px;"></span> ลว. <span class="blank" style="width: 110px;"></span></td>
-          </tr>
-        </table>
+      <div class="flex flex-col items-center">
+        <p class="mb-16 text-gray-500">ลงชื่อ............................................................ผู้ตรวจรับ/อนุมัติ</p>
+        <p class="font-semibold text-gray-800">(............................................................)</p>
+        <p class="text-xs text-gray-400 mt-1.5 font-medium">ตำแหน่ง............................................................</p>
       </div>
-
-      <div style="margin-left: 55%; margin-top: 20px;">
-        (ลงชื่อ) <span class="blank" style="width: 185px;"></span> หผ.มต.<br>
-        <div style="margin-top: 10px;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( <span class="blank" style="width: 170px;" id="finName"></span> )</div>
-      </div>
-
-      <div style="margin-top: 30px;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
-          <tr>
-            <td style="width: 50%; padding-right: 20px; vertical-align: top;">
-              <div style="margin-bottom: 5px;">มิเตอร์เก่ารับเข้า</div>
-              <div style="margin-bottom: 5px;">ผลิตภัณฑ์ <span class="blank" style="width: 100px;"></span> ชนิด <span class="blank" style="width: 80px;"></span></div>
-              <div style="margin-bottom: 5px;">พีอีเอ <span class="blank" style="width: 250px;" id="oldPea"></span></div>
-              <div style="margin-bottom: 5px;">ประเภทมิเตอร์ <span class="blank" style="width: 200px;" id="oldBrand"></span></div>
-              <div style="margin-bottom: 5px;"><span class="blank" style="width: 95%;"></span></div>
-            </td>
-            <td style="width: 50%; padding-left: 10px; vertical-align: top;">
-              <div style="margin-bottom: 5px;">มิเตอร์จ่ายออก</div>
-              <div style="margin-bottom: 5px;">ผลิตภัณฑ์ <span class="blank" style="width: 100px;"></span> ชนิด <span class="blank" style="width: 93px;"></span></div>
-              <div style="margin-bottom: 5px;">พีอีเอ <span class="blank" style="width: 100px;" id="newPea"></span> เลขเครื่อง <span class="blank" style="width: 90px;" id="newMachineNo"></span></div>
-              <div style="margin-bottom: 5px;">แอมป์ <span class="blank" style="width: 100px;" id="newAmp"></span> หน่วยที่อ่าน <span class="blank" style="width: 77px;" id="newRead"></span></div>
-              <div style="margin-bottom: 5px;">เฟส <span class="blank" style="width: 55px;" id="newPhase"></span> สาย <span class="blank" style="width: 70px;" id="newWire"></span> โวลท์ <span class="blank" style="width: 60px;" id="newVolt"></span></div>
-            </td>
-          </tr>
-        </table>
-      </div>
-
-      <div class="footer-code">มต.ตม.4 ป.58</div>
     </div>
   </div>
 
   <script>
-    function autoScale() {
-      var wrapper = document.getElementById('main-wrapper');
-      var screenWidth = window.innerWidth;
-      
-      if (screenWidth < 840) {
-        var scale = screenWidth / 840;
-        wrapper.style.transform = 'scale(' + scale + ')';
-        document.body.style.height = (wrapper.offsetHeight * scale) + 'px';
-      } else {
-        wrapper.style.transform = 'none';
-        document.body.style.height = 'auto';
-      }
-    }
-
-    let resizeTimer;
-    window.addEventListener('resize', function() {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(autoScale, 100);
-    });
-
-    function adjustFontSizeToFit(element) {
-      if (!element) return;
-      element.style.whiteSpace = 'nowrap';
-      let fontSize = 10;
-      element.style.fontSize = fontSize + 'pt';
-      while (element.scrollWidth > element.clientWidth && fontSize > 5) {
-        fontSize -= 0.5;
-        element.style.fontSize = fontSize + 'pt';
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      autoScale();
-
-      const statusText = document.getElementById('printStatus');
-      const printBtn = document.getElementById('printBtn');
-      
-      if (typeof google !== 'undefined' && google.script && google.script.url) {
-        google.script.url.getLocation(function(location) {
-          const params = location.parameter || {};
-          loadData(params.jobId || '', params.pea || '');
-        });
-      } else {
+    document.addEventListener("DOMContentLoaded", function() {
+      try {
+        // 🚀 เปลี่ยนวิธีดักจับข้อมูล: ดึงรหัส jobId จาก URL แล้วไปหยิบข้อมูลจากความทรงจำเบราว์เซอร์ (Vercel แดนเดียวกันแชร์ร่วมกันได้)
         const urlParams = new URLSearchParams(window.location.search);
-        loadData(urlParams.get('jobId') || '', urlParams.get('pea') || '');
-      }
-      
-      function loadData(jobId, pea) {
-        if (document.getElementById('docJobNo')) {
-          document.getElementById('docJobNo').innerText = jobId || '';
-        }
+        const jobId = urlParams.get('jobId');
         
-        if (jobId || pea) {
-          const instantData = localStorage.getItem('instantPrintData_' + jobId);
-          if (instantData) {
-            const result = JSON.parse(instantData);
-            renderDataToScreen(result);
-            localStorage.removeItem('instantPrintData_' + jobId); 
+        // ดึงของที่ index.html ฝากสลักชื่อไว้มาเปิดอ่าน
+        const result = JSON.parse(localStorage.getItem('instantPrintData_' + jobId) || '{}');
+        
+        if (result && Object.keys(result).length > 0) {
+          document.getElementById("txtJobNo").innerText = result.jobNo || "-";
+          document.getElementById("txtDocDate").innerText = formatThaiDateStr(result.docDate) || "-";
+          document.getElementById("txtCustomerName").innerText = result.name || "-";
+          document.getElementById("txtPeaNumber").innerText = result.peaNumber || "-";
+          document.getElementById("txtAddress").innerText = result.address1 || "-";
+          document.getElementById("txtOldPea").innerText = result.oldPea || "-";
+          document.getElementById("txtMeterDesc").innerText = result.meterDesc || "-";
+          document.getElementById("txtReason").innerText = result.reason || "-";
+          document.getElementById("txtReqName").innerText = result.reqName || "-";
+          
+          const qrImg = document.getElementById("qrImg");
+          const latLngText = document.getElementById("latLngText");
+          
+          if (result.lat && result.lng) {
+            const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + result.lat + "," + result.lng;
+            const qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(mapsUrl);
+            
+            qrImg.src = qrCodeUrl;
+            qrImg.style.display = "block";
+            latLngText.innerHTML = result.lat + ", " + result.lng;
           } else {
-            if (statusText) statusText.innerText = 'กำลังดึงข้อมูลล่าสุดจากตาราง กรุณารอสักครู่...';
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-              google.script.run.withSuccessHandler(function(result) {
-                if(result) {
-                  renderDataToScreen(result);
-                } else {
-                  if (statusText) statusText.innerText = 'ข้อผิดพลาด: ไม่พบข้อมูลที่ตรงกับรหัสงานหรือ PEA นี้';
-                }
-              }).getPrintData(jobId, pea, new Date().getTime());
-            } else {
-              if (statusText) statusText.innerText = 'แสดงตัวอย่าง (โหมดพรีวิวไม่สามารถเชื่อมต่อ Google Sheet ได้)';
-            }
+            qrImg.style.display = "none";
+            latLngText.innerHTML = '<span class="text-gray-400 text-xs">ใบงานนี้ไม่มีการบันทึกพิกัดตำแหน่ง</span>';
           }
         } else {
-           if (statusText) statusText.innerText = 'แสดงตัวอย่างแบบฟอร์ม (โหมดไม่มีข้อมูลให้ค้นหา)';
+          document.getElementById("statusText").innerText = "⚠️ ไม่พบตั๋วข้อมูลพิมพ์ในระบบจำลองความจำ";
+          document.getElementById("statusText").className = "text-sm text-amber-600 font-bold";
         }
-      }
-
-      function renderDataToScreen(result) {
-        if (result.docDate) {
-          try {
-            let dateObj;
-            let dateStr = String(result.docDate).trim();
-            const match = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-            if (match) {
-              let d = parseInt(match[1], 10);
-              let m = parseInt(match[2], 10) - 1; 
-              let y = parseInt(match[3], 10);
-              if (y < 100) y += 2000;
-              if (y > 2500) y -= 543;
-              dateObj = new Date(y, m, d);
-            } else {
-              dateObj = new Date(dateStr);
-            }
-
-            if (!isNaN(dateObj.getTime())) {
-              const options = { year: 'numeric', month: 'long', day: 'numeric' };
-              document.getElementById('docDate').innerText = dateObj.toLocaleDateString('th-TH', options);
-            } else {
-              document.getElementById('docDate').innerText = result.docDate;
-            }
-          } catch (e) { document.getElementById('docDate').innerText = result.docDate; }
-        }
-
-        const nameEl = document.getElementById('customerName');
-        if (nameEl) { nameEl.innerText = result.name || ''; adjustFontSizeToFit(nameEl); }
-        
-        const address1El = document.getElementById('address1');
-        const address2El = document.getElementById('address2');
-        if (address1El && address2El) {
-          address1El.style.whiteSpace = 'nowrap';
-          address1El.style.fontSize = '10pt';
-          address2El.style.whiteSpace = 'nowrap'; address2El.style.fontSize = '10pt';
-          let fullText = (result.address1 || '').trim();
-          address1El.innerText = fullText;
-          address2El.innerText = '';
-          if (address1El.scrollWidth > address1El.clientWidth && fullText.length > 0) {
-            let words = fullText.split(' ');
-            let temp1 = ''; let temp2 = '';
-            for (let i = 0; i < words.length; i++) {
-               let testStr = temp1 + (temp1 ? ' ' : '') + words[i];
-               address1El.innerText = testStr;
-               if (address1El.scrollWidth > address1El.clientWidth) {
-                  temp2 = words.slice(i).join(' ');
-                  address1El.innerText = temp1; break;
-               } else { temp1 = testStr; }
-            }
-            if (!temp1 && words.length > 0) {
-                let leftText = words[0];
-                let rightText = ''; address1El.innerText = leftText;
-                while (address1El.scrollWidth > address1El.clientWidth && leftText.length > 0) {
-                    rightText = leftText.slice(-1) + rightText;
-                    leftText = leftText.slice(0, -1); address1El.innerText = leftText;
-                }
-                temp2 = rightText + (words.length > 1 ? ' ' + words.slice(1).join(' ') : '');
-            }
-            address2El.innerText = temp2;
-          }
-        }
-
-        if (document.getElementById('peaNumber')) document.getElementById('peaNumber').innerText = result.peaNumber || '';
-        const meterDesc = result.meterDesc || '';
-        const meterTypeEl = document.getElementById('oldBrand');
-        if (meterTypeEl) { meterTypeEl.innerText = meterDesc; adjustFontSizeToFit(meterTypeEl); }
-        const meterSizeEl = document.getElementById('meterSize');
-        if (meterSizeEl) { meterSizeEl.innerText = meterDesc; adjustFontSizeToFit(meterSizeEl); }
-        
-        const reasonEl = document.getElementById('defectReason');
-        if (reasonEl) { reasonEl.innerText = result.reason || ''; adjustFontSizeToFit(reasonEl); }
-        const reqNameEl = document.getElementById('reqName');
-        if (reqNameEl) { reqNameEl.innerText = result.reqName || ''; adjustFontSizeToFit(reqNameEl); }
-        
-        if (document.getElementById('oldPea')) document.getElementById('oldPea').innerText = result.oldPea || '';
-        if (document.getElementById('newPea')) document.getElementById('newPea').innerText = result.newPea || '';
-        if (document.getElementById('newAmp')) document.getElementById('newAmp').innerText = result.newAmp || '';
-        if (document.getElementById('newRead')) document.getElementById('newRead').innerText = result.newRead || '';
-        if (document.getElementById('newPhase')) document.getElementById('newPhase').innerText = result.newPhase || '';
-        
-        const qrImg = document.getElementById('qrCodeImg');
-        const latLngText = document.getElementById('latLngText');
-        
-        if (result.lat && result.lng) {
-          const mapsUrl = "http://googleusercontent.com/maps.google.com/?q=" + result.lat + "," + result.lng;
-          const qrCodeUrl = "https://quickchart.io/qr?size=150&text=" + encodeURIComponent(mapsUrl);
-          qrImg.src = qrCodeUrl;
-          qrImg.style.display = "block";
-          latLngText.innerHTML = result.lat + ",<br>" + result.lng;
-        } else {
-          qrImg.style.display = "none";
-          latLngText.innerHTML = '<span style="font-size: 8pt; color: #999;">ไม่มีพิกัด</span>';
-        }
-
-        if (statusText) statusText.innerText = 'โหลดข้อมูลเสร็จสิ้น ตรวจสอบความถูกต้องก่อนสั่งพิมพ์';
-        if (printBtn) {
-          const logo = document.getElementById('logoImg');
-          function enablePrintButton() {
-            printBtn.disabled = false;
-            printBtn.style.background = "#4a90e2";
-            printBtn.style.cursor = "pointer";
-            // ลบคำสั่ง setTimeout(window.print, 300); ออก เพื่อให้แสดงแค่หน้าพรีวิว
-          }
-          if (logo && logo.complete) { enablePrintButton();
-          } else if (logo) { logo.onload = enablePrintButton; }
-        }
-        setTimeout(autoScale, 100);
+      } catch (err) {
+        document.getElementById("statusText").innerText = "❌ เกิดข้อผิดพลาด: " + err.message;
+        document.getElementById("statusText").className = "text-sm text-red-600 font-bold";
       }
     });
+
+    function formatThaiDateStr(dateValue) {
+      if (!dateValue) return '-';
+      const dObj = new Date(dateValue);
+      if (isNaN(dObj.getTime())) return String(dateValue);
+      const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      return `${dObj.getDate()} ${thaiMonths[dObj.getMonth()]} ${dObj.getFullYear() + 543}`;
+    }
   </script>
 </body>
 </html>
