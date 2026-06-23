@@ -2,20 +2,37 @@
 <html>
 <head>
   <base target="_top">
+  <meta name="viewport" content="width=840">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body { background: #e0e0e0; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; overflow-x: hidden; }
-    #main-wrapper { width: 840px; margin: 0 auto; padding: 20px 0; display: flex; flex-direction: column; align-items: center; transform-origin: top center; }
+    
+    /* 🚀 ทริคสำคัญ 2: สร้างจุดหมุนให้เวลามันโดนย่อส่วน จะย่อจากตรงกลางด้านบน */
+    #main-wrapper { 
+      width: 840px; 
+      margin: 0 auto; 
+      padding: 20px 0; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      transform-origin: top center; 
+    }
+    
     .no-print { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; width: 210mm; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; }
     .no-print span { font-size: 14pt; color: #333; font-family: 'Sarabun', sans-serif; }
     .no-print button { font-family: 'Sarabun', sans-serif; font-size: 14pt; cursor: pointer; padding: 6px 18px; background: #4a90e2; color: white; border: none; border-radius: 4px; transition: 0.3s; }
     .no-print button:hover { opacity: 0.9; }
+    
+    /* 🚀 ตัวกระดาษถูกล็อกความกว้าง-ยาวตายตัวไว้ */
     .a4-page { background: white; width: 210mm; height: 297mm; padding: 5mm 20mm 20mm 20mm; box-sizing: border-box; box-shadow: 0 0 10px rgba(0,0,0,0.2); font-size: 10pt; color: black; position: relative; overflow: hidden; }
+    
     .text-center { text-align: center; } 
     .blank { border-bottom: 1px dotted #000; display: inline-block; text-align: center; color: #0000ff; padding: 0 5px; vertical-align: baseline; min-height: 14px; }
     .footer-code { font-size: 9pt; position: absolute; bottom: 15mm; left: 20mm; }
 
     @page { size: A4; margin: 0mm; }
+    
+    /* 🚀 ทริคสำคัญ 3: เวลาสั่งพิมพ์จริง (เข้าเครื่องปริ้น) ให้ล้างค่าสเกลกลับเป็นปกติ */
     @media print { 
       body { background: white; padding: 0; margin: 0; height: auto !important; } 
       #main-wrapper { transform: none !important; width: 210mm; padding: 0; margin: 0; }
@@ -135,6 +152,7 @@
   </div>
 
   <script>
+    // 🚀 สคริปต์นี้จะทำหน้าที่ย่อหน้ากระดาษให้พอดีกับความกว้างมือถือเสมอ
     function autoScale() {
       var wrapper = document.getElementById('main-wrapper');
       var screenWidth = window.innerWidth;
@@ -142,6 +160,7 @@
       if (screenWidth < 840) {
         var scale = screenWidth / 840;
         wrapper.style.transform = 'scale(' + scale + ')';
+        // ปรับความสูงของบอดี้ให้พอดีกับขนาดที่ย่อลง
         document.body.style.height = (wrapper.offsetHeight * scale) + 'px';
       } else {
         wrapper.style.transform = 'none';
@@ -149,6 +168,7 @@
       }
     }
 
+    // เรียกตอนโหลดและตอนหมุนจอ
     let resizeTimer;
     window.addEventListener('resize', function() {
       clearTimeout(resizeTimer);
@@ -172,44 +192,26 @@
       const statusText = document.getElementById('printStatus');
       const printBtn = document.getElementById('printBtn');
       
-      if (typeof google !== 'undefined' && google.script && google.script.url) {
-        google.script.url.getLocation(function(location) {
-          const params = location.parameter || {};
-          loadData(params.jobId || '', params.pea || '');
-        });
-      } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        loadData(urlParams.get('jobId') || '', urlParams.get('pea') || '');
+      // ดึงรหัส jobId จาก URL และโหลดข้อมูลจาก LocalStorage ทันที
+      const urlParams = new URLSearchParams(window.location.search);
+      const jobId = urlParams.get('jobId') || '';
+      
+      if (document.getElementById('docJobNo')) {
+        document.getElementById('docJobNo').innerText = jobId;
       }
       
-      function loadData(jobId, pea) {
-        if (document.getElementById('docJobNo')) {
-          document.getElementById('docJobNo').innerText = jobId || '';
-        }
-        
-        if (jobId || pea) {
-          const instantData = localStorage.getItem('instantPrintData_' + jobId);
-          if (instantData) {
-            const result = JSON.parse(instantData);
-            renderDataToScreen(result);
-            localStorage.removeItem('instantPrintData_' + jobId); 
-          } else {
-            if (statusText) statusText.innerText = 'กำลังดึงข้อมูลล่าสุดจากตาราง กรุณารอสักครู่...';
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-              google.script.run.withSuccessHandler(function(result) {
-                if(result) {
-                  renderDataToScreen(result);
-                } else {
-                  if (statusText) statusText.innerText = 'ข้อผิดพลาด: ไม่พบข้อมูลที่ตรงกับรหัสงานหรือ PEA นี้';
-                }
-              }).getPrintData(jobId, pea, new Date().getTime());
-            } else {
-              if (statusText) statusText.innerText = 'แสดงตัวอย่าง (โหมดพรีวิวไม่สามารถเชื่อมต่อ Google Sheet ได้)';
-            }
-          }
+      if (jobId) {
+        const instantData = localStorage.getItem('instantPrintData_' + jobId);
+        if (instantData) {
+          const result = JSON.parse(instantData);
+          renderDataToScreen(result);
+          // ไม่ต้องลบออกเผื่อต้องกดรีเฟรชใหม่
+          // localStorage.removeItem('instantPrintData_' + jobId); 
         } else {
-           if (statusText) statusText.innerText = 'แสดงตัวอย่างแบบฟอร์ม (โหมดไม่มีข้อมูลให้ค้นหา)';
+          if (statusText) statusText.innerText = '⚠️ ไม่พบตั๋วข้อมูลพิมพ์ในระบบจำลองความจำ';
         }
+      } else {
+         if (statusText) statusText.innerText = '⚠️ ไม่พบรหัสใบงาน (Job ID)';
       }
 
       function renderDataToScreen(result) {
@@ -296,8 +298,8 @@
         const latLngText = document.getElementById('latLngText');
         
         if (result.lat && result.lng) {
-          const mapsUrl = "http://googleusercontent.com/maps.google.com/?q=" + result.lat + "," + result.lng;
-          const qrCodeUrl = "https://quickchart.io/qr?size=150&text=" + encodeURIComponent(mapsUrl);
+          const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + result.lat + "," + result.lng;
+          const qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(mapsUrl);
           qrImg.src = qrCodeUrl;
           qrImg.style.display = "block";
           latLngText.innerHTML = result.lat + ",<br>" + result.lng;
@@ -313,11 +315,11 @@
             printBtn.disabled = false;
             printBtn.style.background = "#4a90e2";
             printBtn.style.cursor = "pointer";
-            // ลบคำสั่ง setTimeout(window.print, 300); ออก เพื่อให้แสดงแค่หน้าพรีวิว
           }
           if (logo && logo.complete) { enablePrintButton();
           } else if (logo) { logo.onload = enablePrintButton; }
         }
+        
         setTimeout(autoScale, 100);
       }
     });
