@@ -44,20 +44,24 @@
 <body>
 
   <div id="main-wrapper">
-    <div class="no-print w-[800px] mx-auto mb-6 bg-white p-4 rounded-2xl shadow-lg flex justify-between items-center border border-gray-100">
-  
-  <button onclick="window.close()" 
-    class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-2xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)] transition-all active:scale-95 flex items-center gap-2">
-    ⬅️ ปิดหน้าต่าง
+    <div class="no-print w-[800px] mx-auto mb-6 bg-white p-4 rounded-xl shadow-md flex justify-between items-center border border-gray-200">
+
+  <!-- ปุ่มปิดหน้าต่าง -->
+  <button onclick="window.close()"
+    class="bg-[#6b21a8] hover:bg-[#581c87] text-white font-bold py-2 pl-2 pr-6 rounded-full shadow-md transition duration-200 flex items-center gap-3">
+    <span class="bg-white text-[#6b21a8] rounded-full w-9 h-9 flex items-center justify-center text-lg">⬅️</span>
+    ปิดหน้าต่าง
   </button>
-  
-  <span id="printStatus" class="text-sm font-bold text-gray-400 uppercase tracking-widest">กำลังเตรียมข้อมูล...</span>
-  
-  <button id="printBtn" onclick="window.print()" disabled 
-    style="background:#ccc; cursor:not-allowed;" 
-    class="bg-blue-500 hover:bg-blue-600 text-white font-black py-3 px-8 rounded-2xl shadow-[0_8px_15px_-3px_rgba(59,130,246,0.5)] transition-all active:scale-95 flex items-center gap-2">
-    🖨️ สั่งพิมพ์เอกสาร
+
+  <span id="printStatus">กำลังเตรียมข้อมูล...</span>
+
+  <!-- ปุ่มสั่งพิมพ์เอกสาร -->
+  <button id="printBtn" onclick="window.print()" disabled
+    class="bg-[#6b21a8] hover:bg-[#581c87] text-white font-bold py-2 pl-2 pr-6 rounded-full shadow-md transition duration-200 flex items-center gap-3 disabled:bg-gray-400 disabled:cursor-not-allowed">
+    <span class="bg-white text-[#6b21a8] rounded-full w-9 h-9 flex items-center justify-center text-lg">🖨️</span>
+    สั่งพิมพ์เอกสาร
   </button>
+
 </div>
 
     <div class="a4-page">
