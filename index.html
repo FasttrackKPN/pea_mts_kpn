@@ -1793,9 +1793,8 @@
             const printData = { docDate: targetJob.timestamp, name: targetJob.userName || '', address1: targetJob.userAddress || '', address2: '', peaNumber: targetJob.ca || targetJob.caNo || targetJob.meterId, meterDesc: targetJob.meterSize || '', reason: targetJob.cause || '', reqName: targetJob.reporterName || '', oldPea: targetJob.meterId || '', newPea: '', newAmp: '', newRead: '', newPhase: '', lat: targetJob.lat || '', lng: targetJob.lng || '' };
             localStorage.setItem('instantPrintData_' + jobId, JSON.stringify(printData));
           }
-          if (typeof google !== 'undefined' && google.script) { 
-            google.script.run.withSuccessHandler(url => { window.open(`${url}?page=print&jobId=${jobId}&pea=${encodeURIComponent(pea || '')}`, '_blank'); }).getScriptUrl();
-          } else { alert(`Preview Mode: ระบบจะเปิดหน้าปริ้น PDF ของ Job ID: ${jobId}`); } 
+          // 🚀 เปิดหน้าต่างพิมพ์ดีดบน Vercel โดยตรงทันที ไม่ต้องรอหลังบ้าน Google Apps Script หมุนโหลด
+          window.open(`/print.html?jobId=${jobId}`, '_blank');
         };
 
         return (
