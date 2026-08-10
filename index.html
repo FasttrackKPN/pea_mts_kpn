@@ -4058,10 +4058,9 @@
                     const old = prevMap.get(String(r.id));
                     if (!old) return r;
                     const merged = Object.assign({}, old, r);
-                    // ถ้าแถวเดิมมี note/รูปครบกว่าที่ refresh ส่งมา (เบา) ให้คงของเดิมไว้
+                    // คง note เดิมไว้ถ้า refresh (ข้อมูลเบา) ไม่ได้ส่ง note มา
+                    // ส่วนรูป: ใช้ค่าจาก light (รูปเดียว) ตรงๆ — badge จะได้ถูก และรูปเต็มดึงตอนเปิด modal อยู่แล้ว
                     if ((r.note == null || r.note === '') && old.note) merged.note = old.note;
-                    if (old.image && (!r.image || String(old.image).length > String(r.image).length)) merged.image = old.image;
-                    if (old.auditLink && (!r.auditLink || String(old.auditLink).length > String(r.auditLink).length)) merged.auditLink = old.auditLink;
                     return merged;
                   });
                 });
@@ -4177,7 +4176,11 @@
                    //    แก้โดยดึงใบงานเต็มของใบนี้มาเขียนทับแถวให้ครบหลังบันทึกสำเร็จ
                    google.script.run.withSuccessHandler((full) => {
                      if (full && full.id) {
-                       setJobs(prev => prev.map(j => String(j.id) === String(full.id) ? Object.assign({}, j, full) : j));
+                       // ตัดรูปเหลือใบแรกให้ตรงกับรายการเบา (badge +N จะได้นับถูก, รูปเต็มดึงตอนเปิด modal)
+                       const slim = Object.assign({}, full);
+                       if (slim.image) slim.image = String(slim.image).split('|||')[0] || '';
+                       if (slim.auditLink) slim.auditLink = String(slim.auditLink).split('|||')[0] || '';
+                       setJobs(prev => prev.map(j => String(j.id) === String(full.id) ? Object.assign({}, j, slim) : j));
                      }
                    }).withFailureHandler(() => {}).getJobDetail(id);
                 }
