@@ -4,6 +4,7 @@
   <base target="_top">
   <meta name="viewport" content="width=840">
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { background: #e0e0e0; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; overflow-x: hidden; }
     
@@ -201,6 +202,39 @@
       }
     }
 
+    // 🚀 สร้าง QR Code ในเครื่องเอง (ไม่พึ่งเซิร์ฟเวอร์ภายนอกที่เคยล่ม ERR_CONNECTION_TIMED_OUT)
+    //    มี fallback กลับไปใช้ api.qrserver.com เผื่อกรณีไลบรารีโหลดไม่ได้
+    function generateQRCode(qrImg, mapsUrl) {
+      var doneLocal = false;
+      try {
+        if (typeof QRCode !== 'undefined') {
+          var tmp = document.createElement('div');
+          new QRCode(tmp, { text: mapsUrl, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.M });
+          // ไลบรารีอาจวาดเป็น <img> (data URL) หรือ <canvas> — ดึงออกมาใส่ qrImg
+          setTimeout(function() {
+            var madeImg = tmp.querySelector('img');
+            var madeCanvas = tmp.querySelector('canvas');
+            if (madeImg && madeImg.src) {
+              qrImg.src = madeImg.src; qrImg.style.display = "block";
+            } else if (madeCanvas) {
+              try { qrImg.src = madeCanvas.toDataURL('image/png'); qrImg.style.display = "block"; }
+              catch (e) { fallbackQR(qrImg, mapsUrl); }
+            } else {
+              fallbackQR(qrImg, mapsUrl);
+            }
+          }, 80);
+          doneLocal = true;
+        }
+      } catch (e) { doneLocal = false; }
+
+      if (!doneLocal) fallbackQR(qrImg, mapsUrl);
+    }
+
+    function fallbackQR(qrImg, mapsUrl) {
+      qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(mapsUrl);
+      qrImg.style.display = "block";
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
       autoScale();
 
@@ -314,10 +348,8 @@
         
         if (result.lat && result.lng) {
           const mapsUrl = "https://www.google.com/maps/search/?api=1&query=" + result.lat + "," + result.lng;
-          const qrCodeUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&margin=1&data=" + encodeURIComponent(mapsUrl);
-          qrImg.src = qrCodeUrl;
-          qrImg.style.display = "block";
           latLngText.innerHTML = result.lat + ",<br>" + result.lng;
+          generateQRCode(qrImg, mapsUrl);
         } else {
           qrImg.style.display = "none";
           latLngText.innerHTML = '<span style="font-size: 8pt; color: #999;">ไม่มีพิกัด</span>';
