@@ -767,10 +767,7 @@
         // 💡 ฟังก์ชันบันทึกปิดงานผ่าน Pop-up
         const handleCloseJob = () => {
            if (!tecoModalJob) return;
-           if (auditImages.length === 0) {
-              alert('กรุณาแนบรูปถ่ายหรือไฟล์หลักฐานอย่างน้อย 1 รูป เพื่อยืนยันการปิดงาน (TECO)');
-              return;
-           }
+           // 🔓 ปิดงานได้โดยไม่ต้องแนบรูป (ยกเลิกการบังคับแนบหลักฐาน)
            
            // เก็บค่าเอาไว้ก่อนเคลียร์หน้าจอ
            const jobId = tecoModalJob.id;
@@ -1454,11 +1451,7 @@
              }
           }
           
-          // 🔴 ดักจับ: ปิดงาน (TECO) ต้องมีรูปปิดงานอย่างน้อย 1 รูป
-          if (formData.status === 'ปิดงาน (TECO)' && auditImages.length === 0) {
-            setAlertMsg('สิทธิ์ Audit: กรุณาแนบรูปถ่ายหลักฐานอย่างน้อย 1 รูป เพื่อยืนยันการปิดงาน (TECO)');
-            return;
-          }
+          // 🔓 ปิดงาน (TECO) ได้โดยไม่ต้องแนบรูป (ยกเลิกการบังคับแนบหลักฐาน)
 
           setIsSubmitting(true); 
           let finalData = { ...formData }; 
@@ -1960,6 +1953,50 @@
 // ==========================================
       // คอมโพเนนต์ Dashboard หลัก (ใช้ร่วมกันทั้ง User และ Admin)
       // ==========================================
+      // 📊 สร้างไฟล์ Excel ใบงาน (ใช้ร่วมกันได้ทุกหน้า รูปแบบเดียวกับหน้าจัดการฐานข้อมูล)
+      const writeJobsExcelFile = (rows) => {
+        const imgCell = (val) => {
+          const arr = (typeof val === 'string' ? val.split('|||') : (Array.isArray(val) ? val : [])).filter(Boolean);
+          if (arr.length === 0) return '';
+          return arr[0].startsWith('http') ? arr.join('\n') : `มีรูป (${arr.length})`;
+        };
+        const headers = ['เลขที่ใบงาน','วันที่แจ้ง','สถานะ','PEA มิเตอร์','CA (ผู้ใช้ไฟฟ้า)','ชื่อ-นามสกุล','ที่อยู่-สถานที่ใช้ไฟฟ้า','คำอธิบายหมวดอุปกรณ์','หน่วยการอ่านมิเตอร์','เลขลำดับจดหน่วย','หมวดอัตรา','ชื่อผู้แจ้ง','สาเหตุชำรุด','เหตุผลชำรุด','สถานะแจ้ง Line','พิกัด','หมายเหตุ','ระยะเวลา','ลิงค์รูปแจ้งงาน','ลิงค์รูปปิดงาน'];
+        const body = rows.map(j => [
+          j.jobNo || '', formatDate(j.timestamp), getSafeStatus(j.status), j.meterId || '',
+          j.ca || j.caNo || '', j.userName || '', j.userAddress || '', j.meterSize || '',
+          j.mru || '', j.sequenceNo || '', j.rateCategory || '', j.reporterName || '',
+          j.cause || '', j.defectReason || '', '-', (j.lat && j.lng) ? `${j.lat}, ${j.lng}` : '',
+          j.note || '', j.duration || '', imgCell(j.image), imgCell(j.auditLink)
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
+        ws['!cols'] = [
+          {wch:12},{wch:18},{wch:16},{wch:13},{wch:15},{wch:22},{wch:32},{wch:30},{wch:14},{wch:12},
+          {wch:10},{wch:16},{wch:16},{wch:12},{wch:13},{wch:20},{wch:24},{wch:14},{wch:26},{wch:26}
+        ];
+        ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:0,c:headers.length-1} }) };
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = range.s.r; R <= range.e.r; R++) {
+          for (let C = range.s.c; C <= range.e.c; C++) {
+            const ref = XLSX.utils.encode_cell({ r:R, c:C });
+            if (!ws[ref]) continue;
+            ws[ref].s = R === 0 ? {
+              fill: { fgColor: { rgb: '5F259F' } },
+              font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
+              alignment: { horizontal: 'center', vertical: 'center' },
+              border: { top:{style:'thin',color:{rgb:'4A1D7C'}}, bottom:{style:'thin',color:{rgb:'4A1D7C'}}, left:{style:'thin',color:{rgb:'4A1D7C'}}, right:{style:'thin',color:{rgb:'4A1D7C'}} }
+            } : {
+              alignment: { vertical: 'top' },
+              border: { top:{style:'thin',color:{rgb:'E5E7EB'}}, bottom:{style:'thin',color:{rgb:'E5E7EB'}}, left:{style:'thin',color:{rgb:'E5E7EB'}}, right:{style:'thin',color:{rgb:'E5E7EB'}} }
+            };
+          }
+        }
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'ใบงานแจ้งซ่อม');
+        const d = new Date();
+        const pad = n => String(n).padStart(2,'0');
+        XLSX.writeFile(wb, `PEA_MTS_รายงานแจ้งซ่อม_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.xlsx`);
+      };
+
       const UserDashboard = ({ jobs, onRefresh, isRefreshing, lastUpdated, currentUser, onStatusChange, onDeleteJob, newJobNo }) => {
         const isAdmin = getUserRoles(currentUser).includes('Admin');
         const [expandedMobileId, setExpandedMobileId] = useState(null);
@@ -2030,6 +2067,27 @@
           return result;
         }, [baseFilteredJobs, filterStatus, sortConfig]);
 
+        // 📊 Export Excel — ทุกสิทธิ์ใช้ได้ ส่งออกตามรายการที่กรอง/เรียงอยู่บนจอ
+        //    รายการบนจอเป็นข้อมูลเบา จึงดึงข้อมูลเต็ม (หมายเหตุ + รูปครบ) มาก่อน
+        const [exporting, setExporting] = useState(false);
+        const handleExportExcel = () => {
+          if (typeof XLSX === 'undefined') { alert('ไลบรารี Excel ยังโหลดไม่เสร็จ ลองใหม่อีกครั้งครับ'); return; }
+          if (!processedJobs || processedJobs.length === 0) { alert('ไม่มีข้อมูลใบงานให้ส่งออก'); return; }
+          const finish = (fullList) => {
+            const fullMap = new Map((fullList || []).map(j => [String(j.id), j]));
+            const rows = processedJobs.map(j => Object.assign({}, j, fullMap.get(String(j.id)) || {}));
+            try { writeJobsExcelFile(rows); } catch (e) { alert('ส่งออกไม่สำเร็จ: ' + e); }
+            setExporting(false);
+          };
+          setExporting(true);
+          if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+              .withSuccessHandler(data => finish(Array.isArray(data) ? data : []))
+              .withFailureHandler(() => finish([]))
+              .getAdminJobsFull();
+          } else { finish([]); }
+        };
+
         const statCards = [ { id: 'all', title: 'งานทั้งหมด', value: stats.total, textColor: 'text-[#5F259F]', bgColor: 'bg-purple-50', borderColor: 'border-purple-100', icon: 'FileText', iconColor: 'text-purple-600' }, { id: 'new', title: 'งานใหม่', value: stats.new, textColor: 'text-gray-700', bgColor: 'bg-gray-100', borderColor: 'border-gray-200', icon: 'Clock', iconColor: 'text-gray-500' }, { id: 'received', title: 'รับเรื่อง', value: stats.received, textColor: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-100', icon: 'Download', iconColor: 'text-blue-500' }, { id: 'proposed', title: 'อนุมัติแล้ว', value: stats.proposed, textColor: 'text-indigo-600', bgColor: 'bg-indigo-50', borderColor: 'border-indigo-100', icon: 'FileText', iconColor: 'text-indigo-500' }, { id: 'assigned', title: 'จ่ายงานแล้ว', value: stats.assigned, textColor: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200', icon: 'Refresh', iconColor: 'text-amber-500' }, { id: 'sap', title: 'สับเปลี่ยน SAP แล้ว', value: stats.sap, textColor: 'text-teal-600', bgColor: 'bg-teal-50', borderColor: 'border-teal-200', icon: 'Check', iconColor: 'text-teal-500' }, { id: 'teco', title: 'ปิดงาน (TECO)', value: stats.teco, textColor: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200', icon: 'CheckCircle', iconColor: 'text-emerald-500' }, { id: 'cancelled', title: 'ยกเลิก', value: stats.cancelled, textColor: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200', icon: 'X', iconColor: 'text-red-500' } ];
         
         const handleStatusDropdownChange = (id, newStatus) => { 
@@ -2055,10 +2113,7 @@
 
         const handleCloseJobTECO = async () => {
            if (!tecoModalJob) return;
-           if (auditImages.length === 0) {
-              alert('กรุณาแนบรูปถ่ายหรือไฟล์เอกสารอย่างน้อย 1 ไฟล์ เพื่อยืนยันการปิดงาน (TECO)');
-              return;
-           }
+           // 🔓 ปิดงานได้โดยไม่ต้องแนบรูป (ยกเลิกการบังคับแนบหลักฐาน)
            setIsSubmittingTECO(true);
            try {
               let processedImages = await Promise.all(
@@ -2090,13 +2145,47 @@
         
         const openPrintPage = (jobId, pea) => { 
           const targetJob = jobs.find(j => j.id === jobId);
-          if (targetJob) {
-            const printData = { docDate: targetJob.timestamp, name: targetJob.userName || '', address1: targetJob.userAddress || '', address2: '', peaNumber: targetJob.ca || targetJob.caNo || targetJob.meterId, meterDesc: targetJob.meterSize || '', reason: targetJob.cause || '', reqName: targetJob.reporterName || '', oldPea: targetJob.meterId || '', newPea: '', newAmp: '', newRead: '', newPhase: '', lat: targetJob.lat || '', lng: targetJob.lng || '' };
-            localStorage.setItem('instantPrintData_' + jobId, JSON.stringify(printData));
-          }
-          if (typeof google !== 'undefined' && google.script) { 
-            google.script.run.withSuccessHandler(url => { window.open(`${url}?page=print&jobId=${jobId}&pea=${encodeURIComponent(pea || '')}`, '_blank'); }).getScriptUrl();
-          } else { alert(`Preview Mode: ระบบจะเปิดหน้าปริ้น PDF ของ Job ID: ${jobId}`); } 
+
+          const buildPrintData = (src) => ({
+            docDate: src.timestamp, name: src.userName || '', address1: src.userAddress || '', address2: '',
+            peaNumber: src.ca || src.caNo || src.meterId, meterDesc: src.meterSize || '',
+            reason: src.cause || '', reqName: src.reporterName || '', oldPea: src.meterId || '',
+            newPea: '', newAmp: '', newRead: '', newPhase: '',
+            lat: src.lat || '', lng: src.lng || '', note: src.note || ''
+          });
+
+          const openWindow = () => {
+            if (typeof google !== 'undefined' && google.script) { 
+              google.script.run.withSuccessHandler(url => { window.open(`${url}?page=print&jobId=${jobId}&pea=${encodeURIComponent(pea || '')}`, '_blank'); }).getScriptUrl();
+            } else { alert(`Preview Mode: ระบบจะเปิดหน้าปริ้น PDF ของ Job ID: ${jobId}`); } 
+          };
+
+          if (!targetJob) { openWindow(); return; }
+
+          // เก็บข้อมูลจากรายการไว้ก่อน (กันกรณีดึงข้อมูลเต็มไม่สำเร็จ)
+          localStorage.setItem('instantPrintData_' + jobId, JSON.stringify(buildPrintData(targetJob)));
+
+          // 🚀 รายการหน้าตารางเป็นข้อมูลเบา (ไม่มีหมายเหตุ เพื่อลด Egress)
+          //    จึงดึงข้อมูลเต็มของใบงานนี้มาก่อน เพื่อให้ช่อง "หมายเหตุ" ในใบพิมพ์มีข้อมูลครบ
+          if (typeof google !== 'undefined' && google.script) {
+            google.script.run
+              .withSuccessHandler(full => {
+                if (full) {
+                  const merged = Object.assign({}, targetJob, full);
+                  let n = merged.note || '';
+                  // ตัดป้าย [ยกเลิก: ...] ออกจากหมายเหตุที่จะพิมพ์
+                  if (n.startsWith('[ยกเลิก:')) {
+                    const ci = n.indexOf(']');
+                    if (ci !== -1) n = n.substring(ci + 1).trim();
+                  }
+                  merged.note = n;
+                  localStorage.setItem('instantPrintData_' + jobId, JSON.stringify(buildPrintData(merged)));
+                }
+                openWindow();
+              })
+              .withFailureHandler(() => { openWindow(); })
+              .getJobDetail(jobId);
+          } else { openWindow(); }
         };
 
         return (
@@ -2104,7 +2193,7 @@
             <div className="flex flex-row items-center justify-between gap-2 sm:gap-4 mb-2">
               <div className="flex items-center shrink min-w-0 pb-1"><h2 className="text-xl lg:text-2xl font-black text-[#5F259F] tracking-tight uppercase truncate">รายการแจ้งซ่อมทั้งหมด</h2></div>
               <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                <div className="text-[9px] sm:text-[10px] font-bold text-gray-400 bg-white p-1.5 sm:p-2 px-2.5 sm:px-4 rounded-full border border-gray-100 uppercase tracking-widest shadow-sm whitespace-nowrap">{lastUpdated ? `Sync: ${formatTime(lastUpdated)}` : 'No Sync'}</div>
+                <button onClick={handleExportExcel} disabled={exporting} className="bg-emerald-600 text-white rounded-xl px-3.5 py-2.5 text-[13px] font-bold flex items-center gap-1.5 hover:bg-emerald-700 active:scale-95 transition shadow-sm whitespace-nowrap disabled:opacity-60"><Icon name={exporting ? 'Refresh' : 'FileText'} className={`w-4 h-4 ${exporting ? 'animate-spin' : ''}`} /> <span className="hidden sm:inline">{exporting ? 'กำลังส่งออก...' : 'Export Excel'}</span></button>
                 <button onClick={onRefresh} disabled={isRefreshing} className={`flex items-center justify-center p-2 sm:p-2.5 bg-white border border-gray-100 text-[#5F259F] rounded-full hover:bg-purple-50 transition-all shadow-sm shrink-0 ${isRefreshing ? 'opacity-50' : ''}`}><Icon name="Refresh" className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} /></button>
               </div>
             </div>
